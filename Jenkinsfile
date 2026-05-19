@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "mayurg74/java-devops-app"
+    }
+
     stages {
 
         stage('Clone Code') {
@@ -17,13 +21,26 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t java-devops-app .'
+                sh 'docker build -t $DOCKER_IMAGE .'
             }
         }
 
-        stage('Run Docker Container') {
+        stage('Docker Login') {
             steps {
-                sh 'docker run --name java-container java-devops-app'
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker push $DOCKER_IMAGE'
             }
         }
     }
